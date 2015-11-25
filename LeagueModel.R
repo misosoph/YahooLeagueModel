@@ -8,9 +8,10 @@ loadStats <- function(file){
   stats[,names(stats)[c(4,6:30)]:=lapply(.SD, function(x) as.numeric(as.character(x))), .SDcols=names(stats)[c(4,6:30)]]
 }
 
-stats2014 <- loadStats('/Users/jleong/Downloads/leagues_NBA_2014_totals_totals.csv')
-stats2015 <- loadStats('/Users/jleong/Downloads/leagues_NBA_2015_totals_totals.csv')
-stats2016 <- loadStats('/Users/jleong/Downloads/leagues_NBA_2016_totals_totals.csv')
+dataDir = 'D:/Downloads'#'/Users/jleong/Downloads'
+stats2014 <- loadStats(paste(dataDir, '/leagues_NBA_2014_totals_totals.csv', sep=''))
+stats2014 <- loadStats(paste(dataDir, '/leagues_NBA_2015_totals_totals.csv', sep=''))
+stats2014 <- loadStats(paste(dataDir, '/leagues_NBA_2016_totals_totals.csv', sep=''))
 
 stats <- rbind(stats2014, stats2015, stats2016)
 stats <- stats2016
@@ -95,7 +96,7 @@ setcolorder(ranks, c('rank', names(ranks)[1:(length(ranks)-1)]))
 
 ggplot(melt(ranks2016, id=c(1:3)))+stat_bin(aes(value))+facet_wrap(~variable, scales = 'free')
 
-rosters <- xmlRoot(xmlTreeParse('/Users/jleong/LeagueRosters.xml'))
+rosters <- xmlRoot(xmlTreeParse(paste(dataDir,'/LeagueRosters.xml', sep='')))
 rosterDt = xmlApply(rosters[['results']], function(team) xmlSApply(team[['roster']][['players']], function(player) xmlValue(player[['name']][['full']])))
 names = xmlSApply(rosters[['results']], function(team) xmlValue(team[['name']]))
 names(rosterDt)<-names
@@ -126,3 +127,6 @@ teamRank = teamStats[,
 
 available = teamStats[is.na(Team)]
 setkey(available, rank)
+
+
+ggplot(melt(ranks2016, id=c(1:3)))+stat_bin(aes(value))+facet_wrap(~variable, scales = 'free')
