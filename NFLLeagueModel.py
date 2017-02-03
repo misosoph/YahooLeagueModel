@@ -1,3 +1,4 @@
+#%% init
 import pandas as pd
 import numpy as np
 import json
@@ -8,6 +9,7 @@ if not oauth.token_is_valid():
 from fantasy_sport import FantasySport
 yfs = FantasySport(oauth, fmt='json')
 
+#%%
 
 #response = json.loads(yfs.get_leagues_teams(['353.l.38761']).content)
 league_string = '359.l.698246'
@@ -15,7 +17,7 @@ league_string = '359.l.698246'
 response = json.loads(yfs.get_leagues_teams([league_string]).content)
 teamnames = [x['team'][0][2]['name'] for k,x in response['fantasy_content']['leagues']['0']['league'][1]['teams'].iteritems() if k not in ['count']]
 teamkeys = [x['team'][0][0]['team_key'] for k,x in response['fantasy_content']['leagues']['0']['league'][1]['teams'].iteritems() if k not in ['count']]
-
+#%%
 response = json.loads(yfs.get_teams_roster(teamkeys).content)
 teams = {team['team'][0][2]['name']:[player['player'][0][2]['name']['full'] for p,player in team['team'][1]['roster']['0']['players'].iteritems() if p not in ['count']] for t,team in response['fantasy_content']['teams'].iteritems() if t not in ['count']}
 
