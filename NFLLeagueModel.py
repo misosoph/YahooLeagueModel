@@ -2,24 +2,24 @@
 import pandas as pd
 import numpy as np
 import json
-from yahoo_oauth import OAuth1
-oauth = OAuth1(None, None, from_file='oauth.json')
+from yahoo_oauth import OAuth2
+oauth = OAuth2(None, None, from_file='oauth.json')
 if not oauth.token_is_valid():
     oauth.refresh_access_token()
 from fantasy_sport import FantasySport
 yfs = FantasySport(oauth, fmt='json')
-
+oauth.oauth.base_url='https://fantasysports.yahooapis.com/fantasy/v2/'
 #%%
 
 #response = json.loads(yfs.get_leagues_teams(['353.l.38761']).content)
-league_string = '359.l.698246'
-
+league_string = '371.l.72059'#
+#league_string = '359.l.698246'
+ffl_dir = 'E:/workspace/yahoo-ffl'
+#%%
 response = json.loads(yfs.get_leagues_teams([league_string]).content)
 teamnames = [x['team'][0][2]['name'] for k,x in response['fantasy_content']['leagues']['0']['league'][1]['teams'].iteritems() if k not in ['count']]
 teamkeys = [x['team'][0][0]['team_key'] for k,x in response['fantasy_content']['leagues']['0']['league'][1]['teams'].iteritems() if k not in ['count']]
 #%%
-response = json.loads(yfs.get_teams_roster(teamkeys).content)
-teams = {team['team'][0][2]['name']:[player['player'][0][2]['name']['full'] for p,player in team['team'][1]['roster']['0']['players'].iteritems() if p not in ['count']] for t,team in response['fantasy_content']['teams'].iteritems() if t not in ['count']}
 
 playersByKey = {}
 for start in xrange(1,2000,25):
@@ -29,20 +29,41 @@ playerFrame = pd.DataFrame.from_dict(playersByKey, orient='index')
 playerFrame['name'] = playerFrame.apply(lambda x:x['name']['full'], axis=1)
 playerFrame['eligible_positions'] = playerFrame.apply(lambda x:[str(d.values()[0]) for d in x['eligible_positions']], axis=1)
 playerFrame['bye_weeks'] = playerFrame.apply(lambda x:x['bye_weeks'].values()[0], axis=1)
+#%%
 
-playerStats=pd.read_csv("/Users/jleong/GitHub/yahoo-ffl/stats2016.csv")
-playerStats.append(pd.read_csv("/Users/jleong/GitHub/yahoo-ffl/stats2015.csv"))
-playerStats.append(pd.read_csv("/Users/jleong/GitHub/yahoo-ffl/stats2014.csv"))
+playerStats=pd.read_csv(ffl_dir + "/stats2018.csv")
+playerStats.append(pd.read_csv(ffl_dir + "/stats2017.csv"))
+playerStats.append(pd.read_csv(ffl_dir + "/stats2018.csv"))
 playerStats['pos'] = playerStats['position'].apply(lambda x:x[x.find(' - ')+3:])
 playerStats.groupby('name').agg(lambda x:x['points']/x['games'])
 playerStats.set_index('name')
 playerStats['avgPts'] = playerStats['points']/playerStats['games']
-
+#%%
 json.loads(yfs._get('leagues;league_keys='+league_string+'/players;count=1').content)['fantasy_content']['leagues']['0']['league']
 json.loads(yfs._get('leagues;league_keys='+league_string+'/settings').content)
 json.loads(yfs._get('leagues;league_keys='+league_string+'/draftresults').content)
 sorted([x['draft_result']['player_key'] for k,x in json.loads(yfs._get('leagues;league_keys='+league_string+'/draftresults').content)['fantasy_content']['leagues']['0']['league'][1]['draft_results'].iteritems() if k not in ['count'] and 'player_key' in x['draft_result']], key=lambda x:x['pick'])
 print(response)
+
+response = json.loads(yfs.get_teams_roster(teamkeys).content)
+teams = {team['team'][0][2]['name']:[player['player'][0][2]['name']['full'] 
+              for p,player in team['team'][1]['roster']['0']['players'].iteritems() if p not in ['count']] 
+              for t,team in response['fantasy_content']['teams'].iteritems() if t not in ['count']}
+
+#%%
+playersByKey = {}
+playersStats = {}
+for start in xrange(1,2000,25):
+    response = json.loads(yfs._get('leagues;league_keys='+league_string+'/players;start='+str(start)+"/stats;type=season;season=2016").content)
+    playerList = [x['player'] for k,x in response['fantasy_content']['leagues']['0']['league'][1]['players'].iteritems() if k not in ['count']]
+    playersByKey.update({x[0][0]['player_key']:{d.keys()[0]:d.values()[0] for d in x[0] if isinstance(d, dict)} for x in playerList})
+    for x in playerList:
+        playerkey = x[0][0]['player_key']
+        playersStats[playerkey] = {}
+        for s in x[1]['player_stats']['stats']:
+            stat_id = s['stat']['stat_id']
+            playersStats[playerkey][stat_names[int(stat_id)]]= s['stat']['value']
+
 
 downloadDir = '/Users/jleong/Downloads'
 file = downloadDir + '/leagues_NBA_2016_totals_totals.csv'
